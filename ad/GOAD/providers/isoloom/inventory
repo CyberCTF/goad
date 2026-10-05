@@ -1,0 +1,11 @@
+; GOAD's per-host variables when Isoloom runs the lab: Isoloom's own inventory gives each
+; machine its address and connection (WinRM); these say which domain each machine belongs to.
+[default]
+; sevenkingdoms.local
+dc01 dns_domain=dc01 dict_key=dc01
+; north.sevenkingdoms.local
+dc02 dns_domain=dc01 dict_key=dc02
+srv02 dns_domain=dc02 dict_key=srv02
+; essos.local
+dc03 dns_domain=dc03 dict_key=dc03
+srv03 dns_domain=dc03 dict_key=srv03
