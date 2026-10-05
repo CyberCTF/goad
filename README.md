@@ -23,6 +23,10 @@ cd .isoloom/vagrant && vagrant up
 About 20 GB of memory (`isoloom resources`) plus 1 GB for the controller. Lab guide and
 walkthroughs: the [GOAD documentation](https://orange-cyberdefense.github.io/GOAD/).
 
+**Tested:** built end to end on VirtualBox (five Windows servers plus the controller), 0 failed
+tasks across every play: the two forests, the child domain, the trusts, ACLs, IIS, MSSQL and SSMS
+on both servers, and GOAD's vulnerabilities (including ADCS ESC roles).
+
 ## Changes from upstream GOAD
 
 Fixes to GOAD's roles, found building it through Isoloom (see
