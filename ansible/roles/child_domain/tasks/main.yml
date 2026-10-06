@@ -107,7 +107,7 @@
 - name: Reboot
   win_reboot:
     reboot_timeout: 900
-    post_reboot_delay: 100
+    post_reboot_delay: 60
   when: child_result.changed
 
 # - name: "enable interface {{nat_adapter}} after domain joined"

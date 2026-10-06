@@ -17,7 +17,7 @@
 - name: Reboot to complete domain creation
   win_reboot:
     reboot_timeout: 900
-    post_reboot_delay: 300
+    post_reboot_delay: 150
   when: check_domain.changed
 
 - name: Ensure the server is a domain controller
@@ -32,7 +32,7 @@
 - name: Reboot to complete domain controller setup
   win_reboot:
     reboot_timeout: 900
-    post_reboot_delay: 100
+    post_reboot_delay: 60
   when: check_domain_controller.changed
 
 # DNSCHANGE
