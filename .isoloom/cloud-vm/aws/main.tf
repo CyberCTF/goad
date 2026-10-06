@@ -6,6 +6,7 @@
 
 terraform {
   required_version = ">= 1.6"
+  backend "local" {}
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -193,14 +194,33 @@ resource "aws_instance" "dc01" {
     Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
     Set-Item WSMan:\localhost\Service\Auth\Basic $true
     New-NetFirewallRule -DisplayName 'isoloom WinRM' -Direction Inbound -Protocol TCP -LocalPort 5985 -Action Allow | Out-Null
-    ${var.auto_stop_minutes > 0 ? "shutdown /s /t ${var.auto_stop_minutes * 60}" : ""}
-    Rename-Computer -NewName 'dc01' -Force -Restart
+    ${var.auto_stop_minutes > 0 ? "Register-ScheduledTask -TaskName isoloom-auto-stop -Action (New-ScheduledTaskAction -Execute shutdown.exe -Argument '/s /t 0') -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(${var.auto_stop_minutes})) -User SYSTEM -RunLevel Highest -Force | Out-Null" : ""}
     </powershell>
   EOT
   root_block_device {
     volume_size = 50
   }
   tags = { Name = "${local.name}-dc01" }
+}
+
+resource "terraform_data" "dc01_name" {
+  triggers_replace = [aws_instance.dc01.id]
+  connection {
+    type     = "winrm"
+    host     = aws_instance.dc01.public_ip
+    user     = "isoloom"
+    password = random_password.windows.result
+    https    = false
+    timeout  = "30m"
+  }
+  provisioner "remote-exec" {
+    inline = ["powershell -NoProfile -Command \"if ($env:COMPUTERNAME -ne 'DC01') { Rename-Computer -NewName 'dc01' -Force; shutdown /r /t 10 }\""]
+  }
+}
+
+resource "time_sleep" "dc01_restart" {
+  create_duration = "90s"
+  depends_on      = [terraform_data.dc01_name]
 }
 
 resource "terraform_data" "dc01" {
@@ -218,12 +238,13 @@ resource "terraform_data" "dc01" {
     destination = "C:/isoloom/vagrant/ConfigureRemotingForAnsible.ps1"
   }
   provisioner "file" {
-    content     = "$ErrorActionPreference = 'Stop'\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.11 dc02', '192.168.56.12 dc03', '192.168.56.22 srv02', '192.168.56.23 srv03')\nNew-NetFirewallRule -DisplayName 'isoloom 53' -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 88' -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 389' -Direction Inbound -Protocol TCP -LocalPort 389 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
+    content     = "$ErrorActionPreference = 'Stop'\nif ($env:COMPUTERNAME -ne 'DC01') { throw \"still named $env:COMPUTERNAME: the rename hasn't taken effect\" }\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.11 dc02', '192.168.56.12 dc03', '192.168.56.22 srv02', '192.168.56.23 srv03')\nNew-NetFirewallRule -DisplayName 'isoloom 53' -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 88' -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 389' -Direction Inbound -Protocol TCP -LocalPort 389 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
     destination = "C:/isoloom/setup.ps1"
   }
   provisioner "remote-exec" {
     inline = ["powershell -NoProfile -ExecutionPolicy Bypass -File C:/isoloom/setup.ps1"]
   }
+  depends_on = [time_sleep.dc01_restart]
 }
 
 # Machine `dc02` (Windows): what may reach it.
@@ -269,14 +290,33 @@ resource "aws_instance" "dc02" {
     Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
     Set-Item WSMan:\localhost\Service\Auth\Basic $true
     New-NetFirewallRule -DisplayName 'isoloom WinRM' -Direction Inbound -Protocol TCP -LocalPort 5985 -Action Allow | Out-Null
-    ${var.auto_stop_minutes > 0 ? "shutdown /s /t ${var.auto_stop_minutes * 60}" : ""}
-    Rename-Computer -NewName 'dc02' -Force -Restart
+    ${var.auto_stop_minutes > 0 ? "Register-ScheduledTask -TaskName isoloom-auto-stop -Action (New-ScheduledTaskAction -Execute shutdown.exe -Argument '/s /t 0') -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(${var.auto_stop_minutes})) -User SYSTEM -RunLevel Highest -Force | Out-Null" : ""}
     </powershell>
   EOT
   root_block_device {
     volume_size = 50
   }
   tags = { Name = "${local.name}-dc02" }
+}
+
+resource "terraform_data" "dc02_name" {
+  triggers_replace = [aws_instance.dc02.id]
+  connection {
+    type     = "winrm"
+    host     = aws_instance.dc02.public_ip
+    user     = "isoloom"
+    password = random_password.windows.result
+    https    = false
+    timeout  = "30m"
+  }
+  provisioner "remote-exec" {
+    inline = ["powershell -NoProfile -Command \"if ($env:COMPUTERNAME -ne 'DC02') { Rename-Computer -NewName 'dc02' -Force; shutdown /r /t 10 }\""]
+  }
+}
+
+resource "time_sleep" "dc02_restart" {
+  create_duration = "90s"
+  depends_on      = [terraform_data.dc02_name]
 }
 
 resource "terraform_data" "dc02" {
@@ -294,12 +334,13 @@ resource "terraform_data" "dc02" {
     destination = "C:/isoloom/vagrant/ConfigureRemotingForAnsible.ps1"
   }
   provisioner "file" {
-    content     = "$ErrorActionPreference = 'Stop'\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.10 dc01', '192.168.56.12 dc03', '192.168.56.22 srv02', '192.168.56.23 srv03')\nNew-NetFirewallRule -DisplayName 'isoloom 53' -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 88' -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 389' -Direction Inbound -Protocol TCP -LocalPort 389 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
+    content     = "$ErrorActionPreference = 'Stop'\nif ($env:COMPUTERNAME -ne 'DC02') { throw \"still named $env:COMPUTERNAME: the rename hasn't taken effect\" }\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.10 dc01', '192.168.56.12 dc03', '192.168.56.22 srv02', '192.168.56.23 srv03')\nNew-NetFirewallRule -DisplayName 'isoloom 53' -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 88' -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 389' -Direction Inbound -Protocol TCP -LocalPort 389 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
     destination = "C:/isoloom/setup.ps1"
   }
   provisioner "remote-exec" {
     inline = ["powershell -NoProfile -ExecutionPolicy Bypass -File C:/isoloom/setup.ps1"]
   }
+  depends_on = [time_sleep.dc02_restart]
 }
 
 # Machine `dc03` (Windows): what may reach it.
@@ -345,14 +386,33 @@ resource "aws_instance" "dc03" {
     Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
     Set-Item WSMan:\localhost\Service\Auth\Basic $true
     New-NetFirewallRule -DisplayName 'isoloom WinRM' -Direction Inbound -Protocol TCP -LocalPort 5985 -Action Allow | Out-Null
-    ${var.auto_stop_minutes > 0 ? "shutdown /s /t ${var.auto_stop_minutes * 60}" : ""}
-    Rename-Computer -NewName 'dc03' -Force -Restart
+    ${var.auto_stop_minutes > 0 ? "Register-ScheduledTask -TaskName isoloom-auto-stop -Action (New-ScheduledTaskAction -Execute shutdown.exe -Argument '/s /t 0') -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(${var.auto_stop_minutes})) -User SYSTEM -RunLevel Highest -Force | Out-Null" : ""}
     </powershell>
   EOT
   root_block_device {
     volume_size = 50
   }
   tags = { Name = "${local.name}-dc03" }
+}
+
+resource "terraform_data" "dc03_name" {
+  triggers_replace = [aws_instance.dc03.id]
+  connection {
+    type     = "winrm"
+    host     = aws_instance.dc03.public_ip
+    user     = "isoloom"
+    password = random_password.windows.result
+    https    = false
+    timeout  = "30m"
+  }
+  provisioner "remote-exec" {
+    inline = ["powershell -NoProfile -Command \"if ($env:COMPUTERNAME -ne 'DC03') { Rename-Computer -NewName 'dc03' -Force; shutdown /r /t 10 }\""]
+  }
+}
+
+resource "time_sleep" "dc03_restart" {
+  create_duration = "90s"
+  depends_on      = [terraform_data.dc03_name]
 }
 
 resource "terraform_data" "dc03" {
@@ -370,12 +430,13 @@ resource "terraform_data" "dc03" {
     destination = "C:/isoloom/vagrant/ConfigureRemotingForAnsible.ps1"
   }
   provisioner "file" {
-    content     = "$ErrorActionPreference = 'Stop'\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.10 dc01', '192.168.56.11 dc02', '192.168.56.22 srv02', '192.168.56.23 srv03')\nNew-NetFirewallRule -DisplayName 'isoloom 53' -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 88' -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 389' -Direction Inbound -Protocol TCP -LocalPort 389 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
+    content     = "$ErrorActionPreference = 'Stop'\nif ($env:COMPUTERNAME -ne 'DC03') { throw \"still named $env:COMPUTERNAME: the rename hasn't taken effect\" }\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.10 dc01', '192.168.56.11 dc02', '192.168.56.22 srv02', '192.168.56.23 srv03')\nNew-NetFirewallRule -DisplayName 'isoloom 53' -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 88' -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 389' -Direction Inbound -Protocol TCP -LocalPort 389 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
     destination = "C:/isoloom/setup.ps1"
   }
   provisioner "remote-exec" {
     inline = ["powershell -NoProfile -ExecutionPolicy Bypass -File C:/isoloom/setup.ps1"]
   }
+  depends_on = [time_sleep.dc03_restart]
 }
 
 # Machine `srv02` (Windows): what may reach it.
@@ -421,14 +482,33 @@ resource "aws_instance" "srv02" {
     Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
     Set-Item WSMan:\localhost\Service\Auth\Basic $true
     New-NetFirewallRule -DisplayName 'isoloom WinRM' -Direction Inbound -Protocol TCP -LocalPort 5985 -Action Allow | Out-Null
-    ${var.auto_stop_minutes > 0 ? "shutdown /s /t ${var.auto_stop_minutes * 60}" : ""}
-    Rename-Computer -NewName 'srv02' -Force -Restart
+    ${var.auto_stop_minutes > 0 ? "Register-ScheduledTask -TaskName isoloom-auto-stop -Action (New-ScheduledTaskAction -Execute shutdown.exe -Argument '/s /t 0') -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(${var.auto_stop_minutes})) -User SYSTEM -RunLevel Highest -Force | Out-Null" : ""}
     </powershell>
   EOT
   root_block_device {
     volume_size = 50
   }
   tags = { Name = "${local.name}-srv02" }
+}
+
+resource "terraform_data" "srv02_name" {
+  triggers_replace = [aws_instance.srv02.id]
+  connection {
+    type     = "winrm"
+    host     = aws_instance.srv02.public_ip
+    user     = "isoloom"
+    password = random_password.windows.result
+    https    = false
+    timeout  = "30m"
+  }
+  provisioner "remote-exec" {
+    inline = ["powershell -NoProfile -Command \"if ($env:COMPUTERNAME -ne 'SRV02') { Rename-Computer -NewName 'srv02' -Force; shutdown /r /t 10 }\""]
+  }
+}
+
+resource "time_sleep" "srv02_restart" {
+  create_duration = "90s"
+  depends_on      = [terraform_data.srv02_name]
 }
 
 resource "terraform_data" "srv02" {
@@ -446,12 +526,13 @@ resource "terraform_data" "srv02" {
     destination = "C:/isoloom/vagrant/ConfigureRemotingForAnsible.ps1"
   }
   provisioner "file" {
-    content     = "$ErrorActionPreference = 'Stop'\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.10 dc01', '192.168.56.11 dc02', '192.168.56.12 dc03', '192.168.56.23 srv03')\nNew-NetFirewallRule -DisplayName 'isoloom 80' -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 1433' -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
+    content     = "$ErrorActionPreference = 'Stop'\nif ($env:COMPUTERNAME -ne 'SRV02') { throw \"still named $env:COMPUTERNAME: the rename hasn't taken effect\" }\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.10 dc01', '192.168.56.11 dc02', '192.168.56.12 dc03', '192.168.56.23 srv03')\nNew-NetFirewallRule -DisplayName 'isoloom 80' -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 1433' -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
     destination = "C:/isoloom/setup.ps1"
   }
   provisioner "remote-exec" {
     inline = ["powershell -NoProfile -ExecutionPolicy Bypass -File C:/isoloom/setup.ps1"]
   }
+  depends_on = [time_sleep.srv02_restart]
 }
 
 # Machine `srv03` (Windows): what may reach it.
@@ -497,14 +578,33 @@ resource "aws_instance" "srv03" {
     Set-Item WSMan:\localhost\Service\AllowUnencrypted $true
     Set-Item WSMan:\localhost\Service\Auth\Basic $true
     New-NetFirewallRule -DisplayName 'isoloom WinRM' -Direction Inbound -Protocol TCP -LocalPort 5985 -Action Allow | Out-Null
-    ${var.auto_stop_minutes > 0 ? "shutdown /s /t ${var.auto_stop_minutes * 60}" : ""}
-    Rename-Computer -NewName 'srv03' -Force -Restart
+    ${var.auto_stop_minutes > 0 ? "Register-ScheduledTask -TaskName isoloom-auto-stop -Action (New-ScheduledTaskAction -Execute shutdown.exe -Argument '/s /t 0') -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(${var.auto_stop_minutes})) -User SYSTEM -RunLevel Highest -Force | Out-Null" : ""}
     </powershell>
   EOT
   root_block_device {
     volume_size = 50
   }
   tags = { Name = "${local.name}-srv03" }
+}
+
+resource "terraform_data" "srv03_name" {
+  triggers_replace = [aws_instance.srv03.id]
+  connection {
+    type     = "winrm"
+    host     = aws_instance.srv03.public_ip
+    user     = "isoloom"
+    password = random_password.windows.result
+    https    = false
+    timeout  = "30m"
+  }
+  provisioner "remote-exec" {
+    inline = ["powershell -NoProfile -Command \"if ($env:COMPUTERNAME -ne 'SRV03') { Rename-Computer -NewName 'srv03' -Force; shutdown /r /t 10 }\""]
+  }
+}
+
+resource "time_sleep" "srv03_restart" {
+  create_duration = "90s"
+  depends_on      = [terraform_data.srv03_name]
 }
 
 resource "terraform_data" "srv03" {
@@ -522,12 +622,13 @@ resource "terraform_data" "srv03" {
     destination = "C:/isoloom/vagrant/ConfigureRemotingForAnsible.ps1"
   }
   provisioner "file" {
-    content     = "$ErrorActionPreference = 'Stop'\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.10 dc01', '192.168.56.11 dc02', '192.168.56.12 dc03', '192.168.56.22 srv02')\nNew-NetFirewallRule -DisplayName 'isoloom 80' -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 1433' -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
+    content     = "$ErrorActionPreference = 'Stop'\nif ($env:COMPUTERNAME -ne 'SRV03') { throw \"still named $env:COMPUTERNAME: the rename hasn't taken effect\" }\nAdd-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\" -Value @('192.168.56.10 dc01', '192.168.56.11 dc02', '192.168.56.12 dc03', '192.168.56.22 srv02')\nNew-NetFirewallRule -DisplayName 'isoloom 80' -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 1433' -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow | Out-Null\nNew-NetFirewallRule -DisplayName 'isoloom 445' -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow | Out-Null\n& powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\\isoloom\\vagrant\\ConfigureRemotingForAnsible.ps1'; if ($LASTEXITCODE) { exit $LASTEXITCODE }\nNew-Item -ItemType Directory -Force C:\\ProgramData\\isoloom | Out-Null; Set-Content C:\\ProgramData\\isoloom\\ready 'ready'\n"
     destination = "C:/isoloom/setup.ps1"
   }
   provisioner "remote-exec" {
     inline = ["powershell -NoProfile -ExecutionPolicy Bypass -File C:/isoloom/setup.ps1"]
   }
+  depends_on = [time_sleep.srv03_restart]
 }
 
 # The controller (Ansible): every network may reach it, and SSH from allowed_cidr.
@@ -611,8 +712,8 @@ resource "terraform_data" "isoloom_controller" {
       "sudo mkdir -p /etc/isoloom && sudo install -m 0600 /tmp/isoloom-controller-key /etc/isoloom/id_ed25519 && rm -f /tmp/isoloom-controller-key",
       "sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv curl netcat-openbsd >/dev/null",
       "[ -x /opt/ansible/bin/ansible-playbook ] || { sudo python3 -m venv /opt/ansible && sudo /opt/ansible/bin/pip install -q 'ansible-core>=2.15,<2.17' pywinrm; }",
-      "printf '%s' '[linux]\n\n[windows]\ndc01 ansible_host=192.168.56.10\ndc02 ansible_host=192.168.56.11\ndc03 ansible_host=192.168.56.12\nsrv02 ansible_host=192.168.56.22\nsrv03 ansible_host=192.168.56.23\n\n[linux:vars]\nansible_ssh_private_key_file=/etc/isoloom/id_ed25519\nansible_become=true\n\n[windows:vars]\nansible_user=isoloom\nansible_password=${random_password.windows.result}\nansible_connection=winrm\nansible_port=5985\nansible_winrm_scheme=http\nansible_winrm_transport=basic\nansible_winrm_server_cert_validation=ignore\nansible_winrm_operation_timeout_sec=400\nansible_winrm_read_timeout_sec=500\n' | sudo tee /etc/isoloom/inventory.ini >/dev/null",
-      "sudo sh -c 'set -e\nexport PATH=/opt/ansible/bin:$PATH ANSIBLE_HOST_KEY_CHECKING=False\ncd /opt/isoloom/ansible\nansible-galaxy install -r /opt/isoloom/ansible/requirements_311.yml\nansible-playbook -i /etc/isoloom/inventory.ini -i /opt/isoloom/ad/GOAD/data/inventory -i /opt/isoloom/ad/GOAD/providers/isoloom/inventory -i /opt/isoloom/globalsettings.ini main.yml\n'",
+      "printf '%s' '[linux]\n\n[windows]\ndc01 ansible_host=192.168.56.10\ndc02 ansible_host=192.168.56.11\ndc03 ansible_host=192.168.56.12\nsrv02 ansible_host=192.168.56.22\nsrv03 ansible_host=192.168.56.23\n\n[linux:vars]\nansible_ssh_private_key_file=/etc/isoloom/id_ed25519\nansible_become=true\n\n[windows:vars]\nansible_user=isoloom\nansible_password=${random_password.windows.result}\nansible_connection=winrm\nansible_port=5985\nansible_winrm_scheme=http\nansible_winrm_transport=basic\nansible_winrm_server_cert_validation=ignore\nansible_winrm_operation_timeout_sec=400\nansible_winrm_read_timeout_sec=500\n\n[domain-controllers]\ndc01\ndc02\ndc03\n' | sudo tee /etc/isoloom/inventory.ini >/dev/null",
+      "sudo sh -c 'set -e\nmkdir -p /tmp/isoloom-facts\nexport PATH=/opt/ansible/bin:$PATH ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_GATHERING=smart ANSIBLE_FORKS=20 ANSIBLE_PIPELINING=True ANSIBLE_CACHE_PLUGIN=jsonfile ANSIBLE_CACHE_PLUGIN_CONNECTION=/tmp/isoloom-facts ANSIBLE_CACHE_PLUGIN_TIMEOUT=7200\ncd /opt/isoloom/ansible\nansible-galaxy install -r /opt/isoloom/ansible/requirements_311.yml\nansible-playbook -i /etc/isoloom/inventory.ini -i /opt/isoloom/ad/GOAD/data/inventory -i /opt/isoloom/ad/GOAD/providers/isoloom/inventory -i /opt/isoloom/globalsettings.ini main.yml\n'",
       "sudo mkdir -p /var/lib/isoloom && echo ready | sudo tee /var/lib/isoloom/ready >/dev/null"
     ]
   }

@@ -8,42 +8,44 @@ name: goad
 networks:
   lab: { cidr: 192.168.56.0/24 }
 
+# Every box only sets up WinRM itself; GOAD's Ansible does the rest from the controller. Said
+# once here (Windows Server 2019, 2 CPUs, 3 GB); a machine's own value wins.
+common:
+  resources: { cpus: 2, memory_mb: 3000 }
+  vm:
+    os: windows-server-2019
+    provision: [vagrant/ConfigureRemotingForAnsible.ps1]
+
+groups:
+  domain-controllers:
+    members: [dc01, dc02, dc03]
+
 machines:
   dc01:   # kingslanding: sevenkingdoms.local
     networks: { lab: 10 }
     services: [{ port: 53, name: dns }, { port: 88, name: kerberos }, { port: 389, name: ldap }, { port: 445, name: smb }]
-    resources: { cpus: 2, memory_mb: 3000 }
-    vm:
-      os: windows-server-2019
-      provision: [vagrant/ConfigureRemotingForAnsible.ps1]
+    vm: {}
 
   dc02:   # winterfell: north.sevenkingdoms.local
     networks: { lab: 11 }
     services: [{ port: 53, name: dns }, { port: 88, name: kerberos }, { port: 389, name: ldap }, { port: 445, name: smb }]
-    resources: { cpus: 2, memory_mb: 3000 }
-    vm:
-      os: windows-server-2019
-      provision: [vagrant/ConfigureRemotingForAnsible.ps1]
+    vm: {}
 
   dc03:   # meereen: essos.local
     networks: { lab: 12 }
     services: [{ port: 53, name: dns }, { port: 88, name: kerberos }, { port: 389, name: ldap }, { port: 445, name: smb }]
-    resources: { cpus: 2, memory_mb: 3000 }
     vm:
       os: windows-server-2016
       # The box version GOAD uses for this one.
       image:
         vagrant: StefanScherer/windows_2016
         vagrant_version: "2017.12.14"
-      provision: [vagrant/ConfigureRemotingForAnsible.ps1]
 
   srv02:  # castelblack: IIS and MSSQL in the north
     networks: { lab: 22 }
     services: [{ port: 80, name: iis, http: true }, { port: 1433, name: mssql }, { port: 445, name: smb }]
     resources: { cpus: 2, memory_mb: 6000 }
-    vm:
-      os: windows-server-2019
-      provision: [vagrant/ConfigureRemotingForAnsible.ps1]
+    vm: {}
 
   srv03:  # braavos: MSSQL and ADCS in essos
     networks: { lab: 23 }
@@ -51,7 +53,6 @@ machines:
     resources: { cpus: 2, memory_mb: 5000 }
     vm:
       os: windows-server-2016
-      provision: [vagrant/ConfigureRemotingForAnsible.ps1]
 
 provision:
   - ansible: ansible/main.yml
@@ -60,3 +61,8 @@ provision:
       - ad/GOAD/providers/isoloom/inventory
       - globalsettings.ini
     requirements: ansible/requirements_311.yml
+
+message: |
+  GOAD is up: kingslanding {{ machines.dc01.addresses.lab }}, winterfell {{ machines.dc02.addresses.lab }},
+  meereen {{ machines.dc03.addresses.lab }}, castelblack {{ machines.srv02.addresses.lab }} (IIS, MSSQL),
+  braavos {{ machines.srv03.addresses.lab }} (MSSQL, ADCS). Three domains, two forests, one trust.
