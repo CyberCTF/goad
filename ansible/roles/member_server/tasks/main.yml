@@ -29,6 +29,6 @@
 - name: Reboot if needed
   win_reboot:
     reboot_timeout: 1500
-    post_reboot_delay: 100
+    post_reboot_delay: 60
   when: domain_state.reboot_required
 

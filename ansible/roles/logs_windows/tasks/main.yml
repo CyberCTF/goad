@@ -53,7 +53,7 @@
 - name: Reboot before launch setup
   win_reboot:
     reboot_timeout: 600
-    post_reboot_delay: 100
+    post_reboot_delay: 60
   when: resultwlb.state is defined and resultwlb.state != 'running'
 
 - name: Run winlogbeat setup
