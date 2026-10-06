@@ -1,0 +1,330 @@
+{
+  "generated_by_isoloom": "from isoloom.yml; don't edit: change the spec and run `isoloom generate` (`isoloom check` fails when this file is out of date)",
+  "resolved_version": 1,
+  "name": "goad",
+  "instance": null,
+  "inputs": [],
+  "networks": {
+    "lab": {
+      "cidr": "192.168.56.0/24",
+      "docker_cidr": "10.192.56.0/24",
+      "internet": true,
+      "gateway": null,
+      "gateway_address": "192.168.56.1",
+      "router": null,
+      "controller": "192.168.56.253"
+    }
+  },
+  "reach": [],
+  "machines": {
+    "dc01": {
+      "access": false,
+      "supplied": false,
+      "shapes": [
+        "vm"
+      ],
+      "arch": "amd64",
+      "os": "windows-server-2019",
+      "windows": true,
+      "addresses": {
+        "lab": "192.168.56.10"
+      },
+      "docker_addresses": {
+        "lab": "10.192.56.10"
+      },
+      "services": [
+        {
+          "port": 53,
+          "name": "dns",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 88,
+          "name": "kerberos",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 389,
+          "name": "ldap",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 445,
+          "name": "smb",
+          "http": false,
+          "publish": null
+        }
+      ],
+      "depends_on": [],
+      "inputs": [],
+      "volumes": {},
+      "resources": {
+        "cpus": 2,
+        "memory_mb": 3000,
+        "disk_gb": 20
+      },
+      "gateway_of": [],
+      "routes": [],
+      "default_gateway": null,
+      "offline": false
+    },
+    "dc02": {
+      "access": false,
+      "supplied": false,
+      "shapes": [
+        "vm"
+      ],
+      "arch": "amd64",
+      "os": "windows-server-2019",
+      "windows": true,
+      "addresses": {
+        "lab": "192.168.56.11"
+      },
+      "docker_addresses": {
+        "lab": "10.192.56.11"
+      },
+      "services": [
+        {
+          "port": 53,
+          "name": "dns",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 88,
+          "name": "kerberos",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 389,
+          "name": "ldap",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 445,
+          "name": "smb",
+          "http": false,
+          "publish": null
+        }
+      ],
+      "depends_on": [],
+      "inputs": [],
+      "volumes": {},
+      "resources": {
+        "cpus": 2,
+        "memory_mb": 3000,
+        "disk_gb": 20
+      },
+      "gateway_of": [],
+      "routes": [],
+      "default_gateway": null,
+      "offline": false
+    },
+    "dc03": {
+      "access": false,
+      "supplied": false,
+      "shapes": [
+        "vm"
+      ],
+      "arch": "amd64",
+      "os": "windows-server-2016",
+      "windows": true,
+      "addresses": {
+        "lab": "192.168.56.12"
+      },
+      "docker_addresses": {
+        "lab": "10.192.56.12"
+      },
+      "services": [
+        {
+          "port": 53,
+          "name": "dns",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 88,
+          "name": "kerberos",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 389,
+          "name": "ldap",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 445,
+          "name": "smb",
+          "http": false,
+          "publish": null
+        }
+      ],
+      "depends_on": [],
+      "inputs": [],
+      "volumes": {},
+      "resources": {
+        "cpus": 2,
+        "memory_mb": 3000,
+        "disk_gb": 20
+      },
+      "gateway_of": [],
+      "routes": [],
+      "default_gateway": null,
+      "offline": false
+    },
+    "srv02": {
+      "access": false,
+      "supplied": false,
+      "shapes": [
+        "vm"
+      ],
+      "arch": "amd64",
+      "os": "windows-server-2019",
+      "windows": true,
+      "addresses": {
+        "lab": "192.168.56.22"
+      },
+      "docker_addresses": {
+        "lab": "10.192.56.22"
+      },
+      "services": [
+        {
+          "port": 80,
+          "name": "iis",
+          "http": true,
+          "publish": null
+        },
+        {
+          "port": 1433,
+          "name": "mssql",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 445,
+          "name": "smb",
+          "http": false,
+          "publish": null
+        }
+      ],
+      "depends_on": [],
+      "inputs": [],
+      "volumes": {},
+      "resources": {
+        "cpus": 2,
+        "memory_mb": 6000,
+        "disk_gb": 20
+      },
+      "gateway_of": [],
+      "routes": [],
+      "default_gateway": null,
+      "offline": false
+    },
+    "srv03": {
+      "access": false,
+      "supplied": false,
+      "shapes": [
+        "vm"
+      ],
+      "arch": "amd64",
+      "os": "windows-server-2016",
+      "windows": true,
+      "addresses": {
+        "lab": "192.168.56.23"
+      },
+      "docker_addresses": {
+        "lab": "10.192.56.23"
+      },
+      "services": [
+        {
+          "port": 80,
+          "name": "http",
+          "http": true,
+          "publish": null
+        },
+        {
+          "port": 1433,
+          "name": "mssql",
+          "http": false,
+          "publish": null
+        },
+        {
+          "port": 445,
+          "name": "smb",
+          "http": false,
+          "publish": null
+        }
+      ],
+      "depends_on": [],
+      "inputs": [],
+      "volumes": {},
+      "resources": {
+        "cpus": 2,
+        "memory_mb": 5000,
+        "disk_gb": 20
+      },
+      "gateway_of": [],
+      "routes": [],
+      "default_gateway": null,
+      "offline": false
+    }
+  },
+  "start_order": [
+    "dc01",
+    "dc02",
+    "dc03",
+    "srv02",
+    "srv03"
+  ],
+  "clones": {},
+  "tools": {},
+  "groups": {
+    "domain-controllers": [
+      "dc01",
+      "dc02",
+      "dc03"
+    ]
+  },
+  "router": null,
+  "controller": {
+    "addresses": {
+      "lab": "192.168.56.253"
+    }
+  },
+  "published": [],
+  "targets": {
+    "possible": [
+      "vagrant",
+      "proxmox",
+      "cloud-vm"
+    ],
+    "generated": [
+      "vagrant",
+      "cloud-vm"
+    ],
+    "refused": {
+      "proxmox": "machine `dc01`: no Proxmox image for `windows-server-2019` yet (Debian, Ubuntu, Rocky, AlmaLinux, CentOS 7)"
+    },
+    "not_possible": {
+      "docker": "needs `docker:` on dc01, dc02, dc03, srv02, srv03",
+      "hosted": "needs `docker:` on dc01, dc02, dc03, srv02, srv03",
+      "docker-vm": "needs `docker:` on dc01, dc02, dc03, srv02, srv03",
+      "cloud-docker": "needs `docker:` on dc01, dc02, dc03, srv02, srv03",
+      "kubernetes": "needs `docker:` on dc01, dc02, dc03, srv02, srv03",
+      "hybrid": "only when some machines are containers and others are VMs",
+      "external": "needs `external:` on dc01, dc02, dc03, srv02, srv03"
+    }
+  },
+  "checks": {
+    "default_position": "networks",
+    "positions": []
+  },
+  "message": "GOAD is up: kingslanding 192.168.56.10, winterfell 192.168.56.11,\nmeereen 192.168.56.12, castelblack 192.168.56.22 (IIS, MSSQL),\nbraavos 192.168.56.23 (MSSQL, ADCS). Three domains, two forests, one trust.\n"
+}
