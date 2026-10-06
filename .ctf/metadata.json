@@ -1,0 +1,16 @@
+{
+  "title": "GOAD",
+  "description": "The full Game of Active Directory by Orange Cyberdefense: two forests, three domains and five Windows servers, with IIS, MSSQL, ADCS and the classic AD misconfigurations and trust abuses.",
+  "question": "Work through the forests and compromise the whole environment.",
+  "category": "NETWORK",
+  "difficulty": 3,
+  "evidence_kind": "SECRET",
+  "providers": [
+    "virtualbox",
+    "vmware_desktop",
+    "parallels",
+    "vmware_esxi",
+    "aws",
+    "azure"
+  ]
+}
