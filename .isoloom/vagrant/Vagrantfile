@@ -381,6 +381,78 @@ Vagrant.configure("2") do |config|
       ansible_winrm_operation_timeout_sec=400
       ansible_winrm_read_timeout_sec=500
 
+      [domain]
+      dc01
+      dc02
+      dc03
+      srv02
+      srv03
+
+      [dc]
+      dc01
+      dc02
+      dc03
+
+      [server]
+      srv02
+      srv03
+
+      [parent_dc]
+      dc01
+      dc03
+
+      [child_dc]
+      dc02
+
+      [trust]
+      dc01
+      dc03
+
+      [adcs]
+      dc01
+      srv03
+
+      [adcs_customtemplates]
+      dc03
+
+      [iis]
+      srv02
+
+      [mssql]
+      srv02
+      srv03
+
+      [mssql_ssms]
+      srv02
+
+      [webdav]
+      srv02
+      srv03
+
+      [laps_dc]
+      dc03
+
+      [laps_server]
+      srv03
+
+      [update]
+      srv02
+
+      [no_update]
+      dc01
+      dc02
+      dc03
+      srv03
+
+      [defender_on]
+      dc01
+      dc02
+      dc03
+      srv03
+
+      [defender_off]
+      srv02
+
       [domain-controllers]
       dc01
       dc02
@@ -393,7 +465,7 @@ Vagrant.configure("2") do |config|
       export PATH=/opt/ansible/bin:$PATH ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_GATHERING=smart ANSIBLE_FORKS=20 ANSIBLE_PIPELINING=True ANSIBLE_CACHE_PLUGIN=jsonfile ANSIBLE_CACHE_PLUGIN_CONNECTION=/tmp/isoloom-facts ANSIBLE_CACHE_PLUGIN_TIMEOUT=7200
       cd /opt/isoloom/ansible
       ansible-galaxy install -r /opt/isoloom/ansible/requirements_311.yml
-      ansible-playbook -i /etc/isoloom/inventory.ini -i /opt/isoloom/ad/GOAD/data/inventory -i /opt/isoloom/ad/GOAD/providers/isoloom/inventory -i /opt/isoloom/globalsettings.ini main.yml
+      ansible-playbook -i /etc/isoloom/inventory.ini -i /opt/isoloom/ad/GOAD/data/inventory -e '{"domain_name":"GOAD","admin_user":"administrator","add_route":"no","route_gateway":"192.168.56.1","route_network":"10.0.0.0/8","enable_http_proxy":"no","ad_http_proxy":"http://{{proxy_ip}}:{{proxy_port}}","ad_https_proxy":"http://{{proxy_ip}}:{{proxy_port}}","force_dns_server":"no","dns_server":"1.1.1.1","dns_server_forwarder":"1.1.1.1","proxy_ip":"x.x.x.x","proxy_port":"8080"}' main.yml
     SH
   end
 end
