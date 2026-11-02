@@ -1,0 +1,58 @@
+name: Validate lab
+
+# The lab is its isoloom.yml (https://www.isoloom.com): on every PR and push to main the spec
+# must be valid and its generated Vagrant and Terraform outputs well formed. A VM lab has no
+# Docker edition and cannot boot a hypervisor in CI, so it is covered by these static jobs.
+# `.isoloom/` is build output, regenerated here for the checks.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isoloom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Isoloom CLI
+        run: cargo install isoloom@1.0.1
+      - name: Spec is valid
+        run: isoloom validate
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Isoloom CLI
+        run: cargo install isoloom@1.0.1
+      - name: Generate
+        run: isoloom generate
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.5
+      - name: Terraform outputs are well formed
+        run: |
+          shopt -s nullglob
+          for m in .isoloom/docker-vm/proxmox .isoloom/proxmox .isoloom/esxi .isoloom/cloud-docker/* .isoloom/cloud-vm/*; do
+            [ -f "$m/main.tf" ] || continue
+            echo "== $m"
+            terraform -chdir="$m" init -backend=false -input=false >/dev/null
+            terraform -chdir="$m" validate
+          done
+
+  vagrant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Isoloom CLI
+        run: cargo install isoloom@1.0.1
+      - name: Generate
+        run: isoloom generate
+      - name: Vagrantfiles parse
+        run: |
+          shopt -s nullglob
+          for f in .isoloom/*/Vagrantfile; do ruby -c "$f"; done
