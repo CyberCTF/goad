@@ -11,10 +11,10 @@ networks:
 # Every box only sets up WinRM itself; GOAD's Ansible does the rest from the controller. Said
 # once here (Windows Server 2019, 2 CPUs, 3 GB); a machine's own value wins.
 common:
+  os: windows-server@2019
   resources: { cpus: 2, memory_mb: 3000 }
-  vm:
-    os: windows-server-2019
-    provision: [vagrant/ConfigureRemotingForAnsible.ps1]
+  app:
+    steps: [{ run: vagrant/ConfigureRemotingForAnsible.ps1 }]
 
 groups:
   domain-controllers:
@@ -23,36 +23,34 @@ groups:
 machines:
   dc01:   # kingslanding: sevenkingdoms.local
     networks: { lab: 10 }
-    services: [{ port: 53, name: dns }, { port: 88, name: kerberos }, { port: 389, name: ldap }, { port: 445, name: smb }]
-    vm: {}
+    ports: { dns: 53, kerberos: 88, ldap: 389, smb: 445 }
 
   dc02:   # winterfell: north.sevenkingdoms.local
     networks: { lab: 11 }
-    services: [{ port: 53, name: dns }, { port: 88, name: kerberos }, { port: 389, name: ldap }, { port: 445, name: smb }]
-    vm: {}
+    ports: { dns: 53, kerberos: 88, ldap: 389, smb: 445 }
 
   dc03:   # meereen: essos.local
+    os: windows-server@2016
     networks: { lab: 12 }
-    services: [{ port: 53, name: dns }, { port: 88, name: kerberos }, { port: 389, name: ldap }, { port: 445, name: smb }]
-    vm:
-      os: windows-server-2016
-      # The box version GOAD uses for this one.
-      image:
-        vagrant: StefanScherer/windows_2016
-        vagrant_version: "2017.12.14"
+    ports: { dns: 53, kerberos: 88, ldap: 389, smb: 445 }
 
   srv02:  # castelblack: IIS and MSSQL in the north
     networks: { lab: 22 }
-    services: [{ port: 80, name: iis, http: true }, { port: 1433, name: mssql }, { port: 445, name: smb }]
+    ports: { iis: { port: 80, protocol: http }, mssql: 1433, smb: 445 }
     resources: { cpus: 2, memory_mb: 6000 }
-    vm: {}
 
   srv03:  # braavos: MSSQL and ADCS in essos
+    os: windows-server@2016
     networks: { lab: 23 }
-    services: [{ port: 80, name: http, http: true }, { port: 1433, name: mssql }, { port: 445, name: smb }]
+    ports: { http: { port: 80, protocol: http }, mssql: 1433, smb: 445 }
     resources: { cpus: 2, memory_mb: 5000 }
-    vm:
-      os: windows-server-2016
+
+overrides:
+  vagrant:
+    machines:
+      dc03:   # the box version GOAD uses for this one
+        box: StefanScherer/windows_2016
+        box_version: "2017.12.14"
 
 provision:
   - ansible: ansible/main.yml
